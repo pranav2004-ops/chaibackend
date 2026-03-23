@@ -9,7 +9,6 @@ const githubData=
   "status": "404"
 }
 
-
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
