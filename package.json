@@ -1,21 +1,25 @@
 {
-  "name": "chaiaurcode",
+  "name": "chaiaurbackend",
   "version": "1.0.0",
-  "description": "a basic app to deply",
+  "description": "a backend project",
   "keywords": [
-    "node",
+    "javascript",
+    "backend",
     "chai"
   ],
+  "homepage": "https://github.com/pranav2004-ops/chaibackend#readme",
+  "bugs": {
+    "url": "https://github.com/pranav2004-ops/chaibackend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pranav2004-ops/chaibackend.git"
+  },
   "license": "ISC",
-  "author": "",
+  "author": "pranav",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1"
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
-
