@@ -1,10 +1,14 @@
 //  use app.use(),,, to add middlewares and routes to the app or set the configurations  
 
-import dotenv from "dotenv";
-dotenv.config();
- 
 import connectDB from './db/index.js';
  import {app} from './app.js';
+ 
+import dotenv from "dotenv";
+ dotenv.config({
+    path: './.env'
+})
+ 
+
 
 connectDB()
 

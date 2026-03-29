@@ -55,12 +55,15 @@ refreshToken:{
     }
 )
 
-userSchema.pre("save", async function (next) {
-    if(!this.isModified("password")) return next();
-
+ userSchema.pre("save", async function() {
+    if(!this.isModified("password")) return;
     this.password = await bcrypt.hash(this.password, 10)
-    next()
 })
+//  don't use arrow function here because we need to use 'this' keyword which is not supported 
+// in arrow functions. 'this' will refer to the user document that is being saved.
+// and also we need to use 'this' keyword in the methods below to access the user document.
+// and we don't use next() function here because we are using async/await 
+// and we can handle errors using try/catch block.
 
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password, this.password)
@@ -92,4 +95,4 @@ userSchema.methods.generateRefreshToken = function(){
         }
     )
 }
-export const User = mongoose.model("User",userSchema) 
+export const User = mongoose.model("User",userSchema)
