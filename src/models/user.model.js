@@ -148,4 +148,6 @@ export const User = mongoose.model("User",userSchema)
 // User.create(), User.findOne() are the tools the worker uses to interact with the warehouse (MongoDB) according to the blueprint (user.model.js) when fulfilling orders (API requests).
 */
 
- 
+//  When you log into a website, it gives your browser two things:
+// Access Token – short-lived (minutes to hours), used to verify you're logged in
+// Refresh Token – longer-lived, used to silently get a new access token without asking for your password again

@@ -2,8 +2,9 @@
 
 
 import { Router } from "express";
-import {registerUser} from '../controllers/user.controller.js';
+import {loginUser,logoutUser, registerUser} from '../controllers/user.controller.js';
 import {upload} from "../middlewares/multer.middleware.js"
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router()
 
@@ -18,7 +19,7 @@ router.route("/register")
 //     .put(updateUser)      // PUT /register
  router.route("/register").post(
 
-//     .post(...)
+//  .post(...)
 // This route only responds to POST requests
 // GET, PUT, DELETE requests to this URL will return 404
 
@@ -37,8 +38,14 @@ router.route("/register")
     registerUser
     )   
 
-/*
-upload.fields([
+router.route("/login").post(loginUser)
+
+// secured route, only accessible if you have a valid access token
+router.route("/logout").post(verifyJWT, logoutUser)
+
+
+
+/*upload.fields([
 // { name: "avatar", maxCount: 1 }, 
 // { name: "coverImage", maxCount: 1 }
 // ]) 
@@ -88,8 +95,8 @@ upload.fields([
 // → uploads to Cloudinary
 // → saves user to MongoDB
 // → sends response 
-// */
 
+*/
 
 
 
