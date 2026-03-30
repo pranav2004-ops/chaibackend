@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken"
 import { User } from "../models/user.model.js";
 
+//  JWT token is NOT encrypted — it is only signed. Both DB and user have the same raw token. Security comes from the signature (which needs your secret key to forge), not from hiding the token content. 🔐
 export const verifyJWT = asyncHandler(async(req, _, next) => {
     try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
