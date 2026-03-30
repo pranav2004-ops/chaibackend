@@ -193,6 +193,7 @@ const logoutUser = asyncHandler(async(req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
+// When accessToken expires → user sends refreshToken → server verifies + matches with DB → generates brand new pair of tokens → user stays logged in without re-entering password 🔄🔐
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
@@ -649,6 +650,165 @@ HOW THIS ROUTE IS PROTECTED
 //         ↓
 // 200 response → "User logged Out" ✅ */
 
+/* refreshAccessToken
+This route generates a new accessToken when the old one expires — without asking the user to login again.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — GET INCOMING REFRESH TOKEN (from 2 places)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const incomingRefreshToken = req.cookies.refreshToken 
+                             || req.body.refreshToken
+
+  SOURCE 1 → req.cookies.refreshToken
+  ─────────────────────────────────────
+  → Web browsers send it automatically via cookie
+
+  SOURCE 2 → req.body.refreshToken
+  ─────────────────────────────────────
+  → Mobile apps send it manually in request body
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "unauthorized request")
+  }
+  → If token not found in EITHER place → block request immediately
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — VERIFY & DECODE THE INCOMING TOKEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+  )
+
+  → jwt.verify() checks if token is VALID and NOT EXPIRED
+  → Uses REFRESH_TOKEN_SECRET (different from ACCESS_TOKEN_SECRET)
+  → If valid, returns decoded data like:
+    {
+      _id: "64abc123",
+      iat: 1710000000,
+      exp: 1710090000     ← refresh token has longer expiry (7-10 days)
+    }
+
+  NOTE — TWO DIFFERENT SECRETS
+  ─────────────────────────────────────
+  ACCESS_TOKEN_SECRET  →  used to sign/verify accessToken
+  REFRESH_TOKEN_SECRET →  used to sign/verify refreshToken
+  → Kept separate for extra security
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — FIND USER IN DATABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const user = await User.findById(decodedToken?._id)
+
+  → Uses _id from decoded token to find user in MongoDB
+  → ?. safe navigation — if decodedToken is null, don't crash
+
+  if (!user) {
+    throw new ApiError(401, "Invalid refresh token")
+  }
+  → User not found in DB → token is invalid → block ❌
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — MATCH INCOMING TOKEN WITH DB TOKEN (Most Important Step!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  if (incomingRefreshToken !== user?.refreshToken) {
+    throw new ApiError(401, "Refresh token is expired or used")
+  }
+
+  → Compares the token USER sent  vs  token stored in DB
+  → They MUST be exactly the same
+
+  WHY THIS CHECK?
+  ─────────────────────────────────────
+  SCENARIO 1 — User already logged out
+    → DB has no refreshToken (it was deleted on logout)
+    → incomingRefreshToken !== null → mismatch → blocked ❌
+
+  SCENARIO 2 — Hacker stole an old refreshToken
+    → User already refreshed → DB has NEW refreshToken
+    → Hacker sends OLD token → mismatch → blocked ❌
+
+  SCENARIO 3 — Valid user sends correct token
+    → incomingRefreshToken === user.refreshToken → match → allowed ✅
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — GENERATE NEW TOKENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+
+  → Calls the same utility function from before
+  → Generates BOTH a new accessToken AND a new refreshToken
+  → New refreshToken is saved in DB (old one is replaced)
+  → This is called REFRESH TOKEN ROTATION (more secure)
+
+  REFRESH TOKEN ROTATION
+  ─────────────────────────────────────
+  → Every time you refresh → you get a BRAND NEW refreshToken
+  → Old refreshToken becomes invalid immediately
+  → So even if hacker had the old one → useless now ✅
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — SEND NEW TOKENS TO USER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    → Sets new accessToken in browser cookie
+
+    .cookie("refreshToken", newRefreshToken, options)
+    → Sets new refreshToken in browser cookie
+    → OLD refreshToken cookie is now OVERWRITTEN
+
+    .json(
+      new ApiResponse(200,
+        { accessToken, refreshToken: newRefreshToken },
+        "Access token refreshed"
+      )
+    )
+    → Also sends in body for mobile apps
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CATCH BLOCK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token")
+  }
+
+  → Catches ALL errors (expired token, tampered token etc.)
+  → Returns clean 401 error response */
+
+/*refreshAccessToken
+accessToken expires (after 15 mins)
+          ↓
+Frontend sends refreshToken to this route
+          ↓
+Is refreshToken present?          NO  → 401 ❌
+          ↓ YES
+jwt.verify() — is token valid?    NO  → 401 ❌
+          ↓ YES
+Find user in DB                   NOT FOUND → 401 ❌
+          ↓ FOUND
+Does token match DB token?        NO  → 401 ❌
+          ↓ YES
+Generate NEW accessToken + NEW refreshToken
+          ↓
+Save new refreshToken in DB (old one replaced)
+          ↓
+Send both new tokens to user ✅
+          ↓
+User continues without logging in again ✅ */
 
 
 
