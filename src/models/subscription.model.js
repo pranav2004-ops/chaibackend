@@ -12,5 +12,6 @@ const subscriptionSchema = new Schema({
 }, {timestamps: true})
 
 
+// channel se subscriber milta hai and subscriber se channel milta hai fir document count kr lete 
 
 export const Subscription = mongoose.model("Subscription", subscriptionSchema)
