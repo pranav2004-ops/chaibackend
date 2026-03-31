@@ -7,6 +7,7 @@ import { User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
  
  const generateAccessAndRefereshTokens = async(userId) =>{
     try {
@@ -245,8 +246,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const changeCurrentPassword = asyncHandler(async(req, res) => {
     const {oldPassword, newPassword} = req.body
 
-    
-
     const user = await User.findById(req.user?._id)
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
@@ -364,7 +363,12 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler(async(req, res) => {
-    const {username} = req.params
+
+    const {username} = req.params  //req.params is used to get values from the URL itself
+// Example URL:
+// http://localhost:8000/api/v1/users/profile/john
+//                                             ↑
+//                                       this is the param
 
     if (!username?.trim()) {
         throw new ApiError(400, "username is missing")

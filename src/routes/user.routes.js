@@ -9,7 +9,9 @@ import {loginUser,logoutUser,
       getCurrentUser, 
       updateUserAvatar, 
       updateUserCoverImage, 
-      updateAccountDetails
+      updateAccountDetails,
+       getUserChannelProfile, 
+    getWatchHistory
 }
 
     from '../controllers/user.controller.js';
