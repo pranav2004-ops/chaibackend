@@ -119,7 +119,7 @@ STEP 3 — VERIFY & DECODE THE TOKEN
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STEP 4 — FIND USER IN DATABASE
+STEP 4 — FIND USER IN DATABASE USING DECODED _ID
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   const user = await User.findById(decodedToken?._id)
@@ -192,3 +192,16 @@ Attach user to req.user
 next() → proceed to actual route ✅  */
 
 
+// JSON is just a STRING format. It looks like an object, but it's NOT an object until it's parsed.
+
+// A Node.js framework used to build servers and APIs.
+// Main uses in backend:
+// create server
+// define routes
+// handle requests/responses
+// parse JSON and form data
+// use middleware
+// connect database
+// build APIs
+// implement authentication
+// handle errors

@@ -89,6 +89,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
 // bcrypt.compare() compares the plain text password (from login form) with the hashed password stored in database
 // Returns true if they match, false if not
 // We can't just use === because the stored password is hashed, so we need bcrypt to do the comparison correctly.
+
 userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
@@ -125,7 +126,7 @@ userSchema.methods.generateRefreshToken = function(){
 // When access token expires, frontend sends refresh token to get a new access token without making user log in again
 // Stored in database so it can be invalidated (logout) by deleting it from the user document
 export const User = mongoose.model("User",userSchema)
- 
+ // This creates a 'users' collection in your DB automatically
  
 // - `mongoose.model("User", userSchema)` creates a Model from the schema
 // - MongoDB will store documents in a collection called `users` (mongoose automatically pluralizes and lowercases "User")
@@ -151,3 +152,76 @@ export const User = mongoose.model("User",userSchema)
 //  When you log into a website, it gives your browser two things:
 // Access Token – short-lived (minutes to hours), used to verify you're logged in
 // Refresh Token – longer-lived, used to silently get a new access token without asking for your password again
+
+
+
+/*  How User Model Connects to Database━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP 1 — MODEL IS CREATED (user.model.js)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+//   // user.model.js
+
+//   import mongoose from "mongoose"
+
+//   const userSchema = new mongoose.Schema({
+//       username: String,
+//       email: String,
+//       password: String,
+//       avatar: String,
+//       refreshToken: String
+//   })
+
+//   export const User = mongoose.model("User", userSchema)
+//   //                                   ↑
+//   //                            creates a MODEL
+//   //                            linked to "users" collection in MongoDB
+//   //                            (mongoose auto pluralizes "User" → "users")
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP 2 — DATABASE IS CONNECTED (db/index.js)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+//   // db/index.js
+
+//   import mongoose from "mongoose"
+
+//   const connectDB = async () => {
+//       await mongoose.connect(process.env.MONGODB_URI)
+//       //                      ↑
+//       //              connects to your MongoDB database
+//       //              once connected — all models can talk to DB
+//   }
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP 3 — IMPORT USER IN CONTROLLER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+//   // user.controller.js
+
+//   import { User } from "../models/user.model.js"
+//   //         ↑
+//   //   imports the Model we created in STEP 1
+//   //   now we can use User to talk to "users" collection in MongoDB
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP 4 — USE USER MODEL TO QUERY DATABASE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+//   User.findById(id)
+//   //   ↑
+//   //  mongoose gives these built in methods
+//   //  they directly talk to MongoDB
+
+//   BUILT IN METHODS MONGOOSE GIVES:
+//   ─────────────────────────────────────────
+//   User.findById(id)              → find one user by _id
+//   User.findOne({ email })        → find one user by any field
+//   User.find({})                  → find ALL users
+//   User.findByIdAndUpdate(id, {}) → find and update
+//   User.findByIdAndDelete(id)     → find and delete
+//   User.create({})                → create new user
+//   User.aggregate([])             → complex queries */
+

@@ -68,6 +68,9 @@ router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
 
 
+export default router
+
+
 /*upload.fields([
 // { name: "avatar", maxCount: 1 }, 
 // { name: "coverImage", maxCount: 1 }
@@ -110,7 +113,7 @@ router.route("/history").get(verifyJWT, getWatchHistory)
 // → saves avatar to public/temp/pranav.png
 // → saves coverImage to public/temp/virat.png
 // → populates req.files with file info
-// → calls next()
+// → calls next()                               
 //         ↓
 // registerUser() runs
 // → reads req.body for text fields
@@ -122,7 +125,50 @@ router.route("/history").get(verifyJWT, getWatchHistory)
 */
 
 
+// ## Complete Visual Flow for how to change password (protected route example)
+// ```
+// FRONTEND
+//   sends POST /api/v1/users/change-password
+//   body: { oldPassword, newPassword }
+//   header: Authorization Bearer token
+//           ↓
+// APP.JS
+//   app.use(express.json())     → parses body
+//   app.use("/api/v1/users")    → routes to userRouter
+//           ↓
+// USER.ROUTES.JS
+//   POST /change-password
+//   → verifyJWT → changeCurrentPassword
+//           ↓
+// VERIFYJWT MIDDLEWARE
+//   gets token from header
+//   jwt.verify() → decodes token
+//   User.findById() → finds user
+//   req.user = user
+//   next() → move forward
+//           ↓
+// CHANGECURRENTPASSWORD CONTROLLER
+//   req.body → oldPassword, newPassword
+//   User.findById(req.user._id) → get user from DB
+//   user.isPasswordCorrect() → bcrypt compare
+//   wrong? → 400 error ❌
+//   correct? → user.password = newPassword
+//   user.save() → pre hook hashes password
+//   save to MongoDB ✅
+//           ↓
+// RESPONSE
+//   200 "Password changed successfully" ✅
+//           ↓
+// FRONTEND
+//   receives success response
+//  // Frontend receives this:
+// {
+//     "statusCode": 200,
+//     "data": {},
+//     "message": "Password changed successfully"
+// }
+// ```
+
+// ---
 
 
-
-export default router

@@ -13,6 +13,7 @@ const app = express();
 
 //  use app.use(),,, to add middlewares and routes to the app or set the configurations  
 
+// app.use() registers middleware — runs on every incoming request
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
@@ -29,6 +30,7 @@ app.use(cookieParser());
  
 //router declaration
 app.use("/api/v1/users",userRouter)
+
 // //        ↑
 //   this prefix is added to ALL routes in this file
 // So /register in this file becomes /api/v1/users/register in the full URL.
@@ -49,19 +51,26 @@ export {app};
 cors — Cross Origin Resource Sharing — controls which domains can access your API
 cookieParser — reads cookies from incoming requests and puts them in req.cookies
 userRouter — your user routes file, imported to be mounted on the app
+
 const app = express();
 Creates the main Express application instance
 Everything — middleware, routes, settings — gets attached to this app object
 This is what listens for incoming HTTP requests
+
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
 }));
+
 app.use() registers middleware — runs on every incoming request
+
 CORS is a browser security feature. By default browsers block requests from different domains
 Example: your frontend is on http://localhost:3000 but your backend is on http://localhost:8000 — without CORS this request would be blocked
+
 origin: process.env.CORS_ORIGIN — only allows requests from this domain (set to * in your .env which means all domains allowed)
+
 credentials: true — allows cookies and auth headers to be sent cross-origin
+
 app.use(express.json({ limit: '16kb' })); // JSON middleware
 Tells Express to parse incoming requests with JSON body
 Without this, req.body would be undefined for JSON requests
@@ -100,7 +109,9 @@ After this middleware, you can do:
 req.cookies.accessToken  // ← read cookie
 res.cookie("accessToken", token)  // ← set cookie
 res.clearCookie("accessToken")    // ← delete cookie
+
  Used in authentication — access tokens are often stored in cookies
+
 //  // ❌ Wrong — routes before middleware
 // app.use("/api/v1/users", userRouter)  // routes first
 // app.use(express.json())               // middleware after

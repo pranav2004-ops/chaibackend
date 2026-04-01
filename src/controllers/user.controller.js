@@ -1059,6 +1059,493 @@ Send both new tokens to user ✅
           ↓
 User continues without logging in again ✅ */
 
+/* updateAccountDetails
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — GET DATA FROM REQUEST BODY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const { fullName, email } = req.body
+
+  → User sends new fullName and email from frontend
+  → req.body contains the JSON data sent by user
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — VALIDATE FIELDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  if (!fullName || !email) {
+      throw new ApiError(400, "All fields are required")
+  }
+
+  → checks if BOTH fields are provided
+  → if either one is missing → throw 400 error ❌
+
+  CASES THAT FAIL:
+  ─────────────────────────────────────
+  { fullName: "John" }              → email missing   ❌
+  { email: "john@test.com" }        → fullName missing ❌
+  {}                                → both missing    ❌
+
+  CASE THAT PASSES:
+  ─────────────────────────────────────
+  { fullName: "John", email: "john@test.com" }        ✅
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — FIND AND UPDATE USER IN DATABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const user = await User.findByIdAndUpdate(
+
+  ARGUMENT 1 — WHO to update
+  ─────────────────────────────────────
+    req.user?._id
+    → logged in user's id
+    → attached by verifyJWT middleware
+    → ?. safe navigation — dont crash if null
+
+
+  ARGUMENT 2 — WHAT to update
+  ─────────────────────────────────────
+    {
+      $set: {
+        fullName: fullName,
+        email: email
+      }
+    }
+
+    → $set is MongoDB operator
+    → ONLY updates the fields mentioned
+    → ALL other fields stay UNTOUCHED
+
+    DIFFERENCE BETWEEN $set AND without $set:
+    ──────────────────────────────────────────
+    WITHOUT $set ❌
+    → replaces the ENTIRE document
+    → all other fields like avatar, password get DELETED
+
+    WITH $set ✅
+    → only updates fullName and email
+    → everything else stays as it is
+
+
+  ARGUMENT 3 — OPTIONS
+  ─────────────────────────────────────
+    { new: true }
+
+    → returns the UPDATED document
+    → without this → returns OLD document before update
+    → we need new: true to send updated data back to user
+
+
+  .select("-password")
+  ─────────────────────────────────────
+  → removes password field from result
+  → never send password back to frontend
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — SEND RESPONSE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"))
+
+  → 200 = success
+  → user = updated user object (without password)
+  → "Account details updated successfully" = message   */
+
+/*      getUserChannelProfile — COMPLETE FLOW (Frontend to Backend) 
+
+ TWO USERS INVOLVED:                                         ║
+║  ───────────────────                                         ║
+║  1. "john"  → the CHANNEL being viewed (from URL)            ║
+║  2. Alice   → the VIEWER who is logged in (from token)       ║
+║                                                           
+╔══════════════════════════════════════════════════════════════════════╗
+║      getUserChannelProfile — COMPLETE FLOW (Frontend to Backend)     ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — FRONTEND SENDS REQUEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // Frontend sends GET request with username IN THE URL
+
+  fetch("http://localhost:8000/api/v1/users/c/john", {
+      method: "GET",
+      headers: {
+          Authorization: `Bearer ${accessToken}`
+          //                          ↑
+          //                 token from login response
+      }
+      // NO body needed — username is in URL itself
+  })
+
+  OR IN POSTMAN:
+  ─────────────────────────────────────
+  METHOD  → GET
+  URL     → http://localhost:8000/api/v1/users/c/john
+                                                  ↑
+                                       actual username from DB
+  Headers → Authorization: Bearer <accessToken>
+  Body    → NONE ❌
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — REQUEST HITS app.js
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // app.js
+
+  app.use(express.json())
+  app.use(cookieParser())
+  app.use("/api/v1/users", userRouter)
+  //              ↑
+  //   request forwarded to userRouter
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — ROUTER MATCHES ROUTE (user.routes.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  router.get("/c/:username", verifyJWT, getUserChannelProfile)
+  //              ↑              ↑               ↑
+  //    :username is dynamic   runs 1st       runs 2nd
+  //    /c/john → username     checks token   fetches channel
+  //    = "john"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — verifyJWT MIDDLEWARE RUNS (auth.middleware.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  export const verifyJWT = asyncHandler(async(req, _, next) => {
+
+    // GET TOKEN from cookie or Authorization header
+    const token = req.cookies?.accessToken
+               || req.header("Authorization")?.replace("Bearer ", "")
+    //                                                      ↑
+    //                              "Bearer eyJhbGci..." → "eyJhbGci..."
+
+    if (!token) throw new ApiError(401, "Unauthorized request")
+    //                                          ↑
+    //                              no token → block ❌
+
+    // VERIFY TOKEN
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+    //  decodedToken = {
+    //      _id: "64abc123",
+    //      email: "john@test.com",
+    //      iat: 1710000000,
+    //      exp: 1710003600
+    //  }
+
+    // FIND USER in DB
+    const user = await User.findById(decodedToken?._id)
+                           .select("-password -refreshToken")
+
+    if (!user) throw new ApiError(401, "Invalid Access Token")
+
+    // ATTACH USER to request
+    req.user = user
+    //    ↑
+    //  used later in isSubscribed check:
+    //  req.user?._id → is this user subscribed to the channel?
+
+    next() // → move to getUserChannelProfile
+  })
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — getUserChannelProfile CONTROLLER RUNS (user.controller.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const { username } = req.params
+  //          ↑
+  //   URL was /c/john → username = "john"
+  //   req.params reads dynamic values from URL
+
+  if (!username?.trim()) {
+      throw new ApiError(400, "username is missing")
+      //  trim() removes extra spaces
+      //  if URL is /c/   (empty) → block ❌
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — MONGODB AGGREGATION PIPELINE RUNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const channel = await User.aggregate([
+
+  → aggregate is used when we need data from MULTIPLE collections
+  → normal findOne only gets data from ONE collection
+  → here we need data from Users + Subscriptions collections
+  → runs 5 stages one by one
+
+  ─────────────────────────────────────────────────────────────────────
+  STAGE 1 — $match (find the user)
+  ─────────────────────────────────────────────────────────────────────
+
+    {
+        $match: {
+            username: username?.toLowerCase()
+            //              ↑
+            //   finds user where username = "john"
+            //   toLowerCase() → "JOHN" and "john" treated same
+        }
+    }
+
+    RESULT AFTER STAGE 1:
+    → one user document found in Users collection
+    {
+        _id: "64abc123",
+        username: "john",
+        fullName: "John Doe",
+        email: "john@test.com",
+        avatar: "https://cloudinary.com/...",
+    }
+
+
+  ─────────────────────────────────────────────────────────────────────
+  STAGE 2 — $lookup (get all SUBSCRIBERS of this channel)
+  ─────────────────────────────────────────────────────────────────────
+
+    {
+        $lookup: {
+            from: "subscriptions",
+            //         ↑
+            //   look in subscriptions collection
+            //   subscription document looks like:
+            //   { subscriber: userId, channel: channelId }
+
+            localField: "_id",
+            //              ↑
+            //   this user's _id = "64abc123"
+
+            foreignField: "channel",
+            //                 ↑
+            //   find all docs where channel = "64abc123"
+            //   these are people who subscribed to john
+
+            as: "subscribers"
+            //       ↑
+            //   store all matching docs as "subscribers" array
+        }
+    }
+
+    RESULT AFTER STAGE 2:
+    → subscribers array added to user document
+    {
+        _id: "64abc123",
+        username: "john",
+        subscribers: [
+            { subscriber: "user1_id", channel: "64abc123" },
+            { subscriber: "user2_id", channel: "64abc123" },
+            { subscriber: "user3_id", channel: "64abc123" },
+        ]
+        // 3 people subscribed to john's channel
+    }
+
+
+  ─────────────────────────────────────────────────────────────────────
+  STAGE 3 — $lookup (get channels THIS user SUBSCRIBED TO)
+  ─────────────────────────────────────────────────────────────────────
+
+    {
+        $lookup: {
+            from: "subscriptions",
+            localField: "_id",
+            //              ↑
+            //   this user's _id = "64abc123"
+
+            foreignField: "subscriber",
+            //                  ↑
+            //   find all docs where subscriber = "64abc123"
+            //   these are channels john subscribed to
+
+            as: "subscribedTo"
+            //       ↑
+            //   store as "subscribedTo" array
+        }
+    }
+
+    RESULT AFTER STAGE 3:
+    → subscribedTo array added
+    {
+        _id: "64abc123",
+        username: "john",
+        subscribers: [ ...3 items ],
+        subscribedTo: [
+            { subscriber: "64abc123", channel: "channel1_id" },
+            { subscriber: "64abc123", channel: "channel2_id" },
+        ]
+        // john subscribed to 2 channels
+    }
+
+
+  ─────────────────────────────────────────────────────────────────────
+  STAGE 4 — $addFields (calculate counts + isSubscribed)
+  ─────────────────────────────────────────────────────────────────────
+
+    {
+        $addFields: {
+
+            subscribersCount: {
+                $size: "$subscribers"
+                //          ↑
+                //   counts total items in subscribers array
+                //   → 3
+            },
+
+            channelsSubscribedToCount: {
+                $size: "$subscribedTo"
+                //          ↑
+                //   counts total items in subscribedTo array
+                //   → 2
+            },
+
+            isSubscribed: {
+                $cond: {
+                    if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                    //              ↑                      ↑
+                    //    logged in user's id    array of all subscriber ids
+                    //    is MY id inside subscribers list?
+
+                    then: true,    // YES → I am subscribed ✅
+                    else: false    // NO  → I am not subscribed ❌
+                }
+            }
+        }
+    }
+
+    RESULT AFTER STAGE 4:
+    {
+        _id: "64abc123",
+        username: "john",
+        subscribers: [ ...3 items ],
+        subscribedTo: [ ...2 items ],
+        subscribersCount: 3,
+        channelsSubscribedToCount: 2,
+        isSubscribed: true   ← logged in user IS subscribed to john
+    }
+
+
+  ─────────────────────────────────────────────────────────────────────
+  STAGE 5 — $project (return only needed fields)
+  ─────────────────────────────────────────────────────────────────────
+
+    {
+        $project: {
+            fullName: 1,                    // 1 = include this field
+            username: 1,
+            subscribersCount: 1,
+            channelsSubscribedToCount: 1,
+            isSubscribed: 1,
+            avatar: 1,
+            coverImage: 1,
+            email: 1
+            // everything else is EXCLUDED automatically
+            // subscribers array, subscribedTo array not sent
+            // (they were only needed to calculate counts)
+        }
+    }
+
+    FINAL RESULT:
+    {
+        fullName: "John Doe",
+        username: "john",
+        subscribersCount: 3,
+        channelsSubscribedToCount: 2,
+        isSubscribed: true,
+        avatar: "https://cloudinary.com/...",
+        coverImage: "https://cloudinary.com/...",
+        email: "john@test.com"
+    }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7 — CHECK IF CHANNEL EXISTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  if (!channel?.length) {
+      throw new ApiError(404, "channel does not exist")
+  }
+  //  aggregate always returns an ARRAY
+  //  if no user found → array is empty []
+  //  [] length = 0 → throw 404 ❌
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8 — SEND RESPONSE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, channel[0], "User channel fetched successfully"))
+  //                          ↑
+  //              channel is an ARRAY → channel[0] gets first item
+  //              only one channel matches the username
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 9 — RESPONSE GOES BACK TO FRONTEND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  {
+      "statusCode": 200,
+      "data": {
+          "fullName": "John Doe",
+          "username": "john",
+          "subscribersCount": 3,
+          "channelsSubscribedToCount": 2,
+          "isSubscribed": true,
+          "avatar": "https://cloudinary.com/...",
+          "coverImage": "https://cloudinary.com/...",
+          "email": "john@test.com"
+      },
+      "message": "User channel fetched successfully"
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETE VISUAL FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  FRONTEND
+  GET /api/v1/users/c/john
+  header: Authorization Bearer token
+          ↓
+  APP.JS
+  routes to userRouter
+          ↓
+  USER.ROUTES.JS
+  GET /c/:username
+  → verifyJWT → getUserChannelProfile
+          ↓
+  VERIFYJWT
+  token verified → req.user = loggedInUser → next()
+          ↓
+  CONTROLLER
+  req.params.username = "john"
+          ↓
+  MONGODB AGGREGATION
+  Stage 1 → $match      find user "john"
+  Stage 2 → $lookup     get all subscribers of john
+  Stage 3 → $lookup     get all channels john subscribed to
+  Stage 4 → $addFields  count subscribers + check isSubscribed
+  Stage 5 → $project    return only needed fields
+          ↓
+  channel found?   NO  → 404 ❌
+          ↓ YES
+  return channel[0] ✅
+          ↓
+  FRONTEND
+  shows channel profile with subscriber count ✅
+*/
 
 
 //  A cookie is a small data file stored in your browser by a website — used to remember you, keep you logged in, and track your preferences across visits. 🍪

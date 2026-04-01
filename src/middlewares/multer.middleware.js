@@ -13,3 +13,6 @@ const storage = multer.diskStorage({
 export const upload = multer({ 
     storage, 
 })
+
+// This is Multer Middleware — it handles file uploads by saving them temporarily to your local server before uploading to Cloudinary.
+
