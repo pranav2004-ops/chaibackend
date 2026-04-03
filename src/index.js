@@ -1,12 +1,13 @@
 //  use app.use(),,, to add middlewares and routes to the app or set the configurations  
-
-import connectDB from './db/index.js';
- import {app} from './app.js';
- 
 import dotenv from "dotenv";
  dotenv.config({
     path: './.env'
 })
+
+import connectDB from './db/index.js';
+ import {app} from './app.js';
+ 
+
  
 
 
@@ -51,3 +52,9 @@ const app = express();
 
 
 */
+
+
+// rm -rf node_modules
+// rm package-lock.json
+// npm install
+// npm run dev

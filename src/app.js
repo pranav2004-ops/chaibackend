@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 
 // routes import 
 import userRouter from './routes/user.routes.js'
+import videoRouter from "./routes/video.routes.js"
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(cookieParser());
  
 //router declaration
 app.use("/api/v1/users",userRouter)
+app.use("/api/v1/videos", videoRouter)
 
 // //        ↑
 //   this prefix is added to ALL routes in this file
