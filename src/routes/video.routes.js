@@ -40,3 +40,27 @@ router
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 
 export default router
+
+// PUT → replace entire resource
+// PATCH → update part of resource
+ 
+/*                                         
+{                                        
+  "name": "Pranav",                             
+  "email": "pranav@gmail.com",              
+  "age": 20
+}
+
+
+{
+  "name": "Pranav Kashyap"         
+}
+
+patch Only updates name
+ Rest stays unchanged  
+
+ but in put :You didn’t send email & age
+Server might overwrite them → data loss
+PUT expects full object
+  */
+
